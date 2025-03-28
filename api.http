@@ -1,0 +1,67 @@
+@host = http://localhost:8080
+@auctionId = 44acd872-daa3-4d5c-a421-c01119a3d30a
+
+# john doe
+@johnDoeId = adbf0c24-21bb-442c-8f7a-1d4b6826720f
+# jane doe
+@janeDoeId = 89bee1c2-a7c2-4dff-8563-79c6c8f4477a
+
+# -----------------------------------------------------------
+# Auction
+# -----------------------------------------------------------
+### Create new auction
+POST {{host}}/auction
+Content-Type: application/json
+
+{
+  "product_name": "Volkswagen Golf 2021",
+  "category": "Automotive",
+  "description": "Motor 1.4 TSI",
+  "condition": 1
+}
+
+### Get auction by ID
+GET {{host}}/auction/{{auctionId}}
+Content-Type: application/json
+
+### Get auctions with filters
+GET {{host}}/auction?status=0
+Content-Type: application/json
+
+### Get winning bid for auction
+GET {{host}}/auction/winner/{{auctionId}}
+Content-Type: application/json
+
+# -----------------------------------------------------------
+# Bid
+# -----------------------------------------------------------
+### Create new bid (Jane Doe)
+POST {{host}}/bid
+Content-Type: application/json
+
+{
+  "auction_id": "{{auctionId}}",
+  "user_id": "{{janeDoeId}}",
+  "amount": 61250.99
+}
+
+### Create new bid (John Doe)
+POST {{host}}/bid
+Content-Type: application/json
+
+{
+  "auction_id": "{{auctionId}}",
+  "user_id": "{{johnDoeId}}",
+  "amount": 61300.99
+}
+
+### Get all bids for auction id
+GET {{host}}/bid/{{auctionId}}
+Content-Type: application/json
+
+# -----------------------------------------------------------
+# User
+# -----------------------------------------------------------
+### Get user by ID
+GET {{host}}/user/{{johnDoeId}}
+Content-Type: application/json

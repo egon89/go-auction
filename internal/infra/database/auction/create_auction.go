@@ -35,9 +35,9 @@ func NewAuctionRepository(ctx context.Context, database *mongo.Database) *Auctio
 		expiredChannel: make(chan string, 5),
 	}
 
-	go repository.startExpiredAuctionMonitor(ctx)
+	go repository.startExpiredAuctionMonitor(ctx, getAuctionDuration())
 
-	go repository.processExpiredAuction()
+	go repository.processExpiredAuction(ctx)
 
 	return repository
 }
@@ -63,28 +63,28 @@ func (ar *AuctionRepository) CreateAuction(
 	return nil
 }
 
-func (ar *AuctionRepository) startExpiredAuctionMonitor(ctx context.Context) {
-	log.Println("Starting expired auction monitor")
+func (ar *AuctionRepository) startExpiredAuctionMonitor(ctx context.Context, auctionDuration time.Duration) {
+	log.Println("[expired-monitor] Starting expired auction monitor")
 
-	ticker := time.NewTicker(getAuctionDuration())
+	ticker := time.NewTicker(auctionDuration)
 	defer ticker.Stop()
 
 	for range ticker.C {
-		log.Println("Checking for expired auctions")
-		ar.checkExpiredAuction(ctx)
+		log.Println("[expired-monitor] Checking for expired auctions")
+		ar.checkExpiredAuction(ctx, auctionDuration)
 	}
 }
 
-func (ar *AuctionRepository) checkExpiredAuction(ctx context.Context) {
-	log.Println("Checking expired auctions")
+func (ar *AuctionRepository) checkExpiredAuction(ctx context.Context, auctionDuration time.Duration) {
+	log.Println("[expired-auction-check] Checking for expired auctions")
 
-	activeAuctions, err := ar.FindAuctions(ctx, auction_entity.Active, "", "")
+	activeAuctions, err := ar.FindActiveAuctions(ctx)
 	if err != nil {
-		log.Println("Error trying to find auctions")
+		log.Println("[expired-auction-check] Error trying to find auctions")
 		return
 	}
 
-	log.Printf("Found %d active auctions\n", len(activeAuctions))
+	log.Printf("[expired-auction-check] Found %d active auctions\n", len(activeAuctions))
 
 	var wg sync.WaitGroup
 	for _, auction := range activeAuctions {
@@ -94,10 +94,11 @@ func (ar *AuctionRepository) checkExpiredAuction(ctx context.Context) {
 
 			now := time.Now().UTC()
 			auctionTimestamp := auction.Timestamp.UTC()
-			auctionWithDuration := auctionTimestamp.Add(getAuctionDuration())
+			auctionWithDuration := auctionTimestamp.Add(auctionDuration)
 
 			if now.After(auctionWithDuration) {
-				log.Printf("Auction %s expired\n", auction.Id)
+				log.Printf("[expired-auction-check] Sending auction %s to expired channel. Auction duration deadline: %s. Now: %s\n",
+					auction.Id, auctionWithDuration, now)
 				ar.expiredChannel <- auction.Id
 			}
 		}(auction)
@@ -105,15 +106,15 @@ func (ar *AuctionRepository) checkExpiredAuction(ctx context.Context) {
 	wg.Wait()
 }
 
-func (ar *AuctionRepository) processExpiredAuction() {
-	log.Println("Process expired auction started")
+func (ar *AuctionRepository) processExpiredAuction(ctx context.Context) {
+	log.Println("[expired-auction-process] Starting process expired auction")
 
 	for auctionId := range ar.expiredChannel {
-		log.Printf("Processing auction id %s\n", auctionId)
-		// TODO: update auction status to completed
+		log.Printf("[expired-auction-process]  Updating auction %s status to completed\n", auctionId)
+		ar.UpdateAuctionStatusById(ctx, auctionId, auction_entity.Completed)
 	}
 
-	log.Println("Process expired auction finished")
+	log.Println("[expired-auction-process] Process expired auction finished")
 }
 
 func getAuctionDuration() time.Duration {

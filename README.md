@@ -36,7 +36,7 @@ make down
 
 ### Project startup
 The initial setup will create a database using the content of the `./docker/database/mongo-init.js` file.
-This file contains 3 userss and 3 auctions.
+This file contains 3 users and 3 auctions.
 - Auction of Volkswagen Golf (`d535fac9-f89a-4e37-9303-bc2720cdc16c`), will have the timestamp of the current moment.
 - Auction of Ford Mustang (`fd58f3b5-8b4e-401a-b1d9-113f843c02c1`), will have the timestamp of the current moment less 10 minutes.
 - Auction of Tesla Model S (`a4f1b6d9-3e3b-4c2d-8b1a-6e1b3d0f1e1e`), will have the timestamp of the current moment plus 1 minute.
